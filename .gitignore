@@ -1,0 +1,17 @@
+# Simulation outputs
+*.out
+*.vcd
+*.vvp
+
+# Vivado project/generated files
+*.jou
+*.log
+.Xil/
+*.cache/
+*.runs/
+*.sim/
+*.srcs/.unmanaged/
+
+# OS files
+.DS_Store
+Thumbs.db
