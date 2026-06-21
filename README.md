@@ -184,6 +184,7 @@ Vivado's simulator.
 
 **Harshit Panwar**
 B.Tech Electronics & Communication Engineering, JIIT Noida
+
 GitHub: [HarshitPanwar27](https://github.com/HarshitPanwar27)
 
 ---
