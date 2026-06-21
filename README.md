@@ -1,38 +1,48 @@
-# Comparative Analysis of Digital Multiplier Techniques
+# Digital Multiplier Comparison — Array vs Booth vs Wallace Tree
 
-A Verilog HDL implementation and comparative study of three widely used digital
-multiplier architectures: **Array Multiplier**, **Radix-4 Booth Multiplier**, and
-**Wallace Tree Multiplier**.
+Verilog HDL implementation, simulation, and FPGA synthesis comparison of three classical multiplier architectures using Xilinx Vivado (Artix-7 FPGA).
 
----
-
-## Overview
-
-Multiplication is one of the most computation-intensive operations in digital
-systems and forms the core of:
-
-* Digital Signal Processing (DSP)
-* Microprocessors and ALUs
-* AI Accelerators
-* Communication Systems (4G/5G/6G)
-* Embedded Systems
-* VLSI Architectures
-
-The choice of multiplier architecture directly affects speed, area utilization,
-power consumption, and overall hardware efficiency. This project implements
-and compares three commonly used multiplier architectures using Verilog HDL,
-verifies them through simulation, and synthesizes them on real FPGA hardware
-(Xilinx Vivado, Artix-7) to evaluate their actual trade-offs.
+**Technologies:** Verilog HDL • Xilinx Vivado • FPGA Design • RTL Design • Digital Logic • Hardware Verification
 
 ---
 
-## Architecture Comparison
+## What I Built
 
-| Architecture                | Reduction Method              |
-|------------------------------|--------------------------------|
-| Array Multiplier             | Serial ripple-carry addition  |
-| Booth Multiplier (Radix-4)   | Reduced partial products + addition |
-| Wallace Tree Multiplier      | Parallel carry-save reduction |
+* 4×4-bit multiplier modules for all three architectures, written as clean,
+  synthesizable Verilog
+* A shared `booth_encoder_unsigned` submodule implementing the full Radix-4
+  Booth encoding table (`0, +A, +2A, -A, -2A`)
+* A single testbench (`tb_top.v`) that drives all three designs with the same
+  inputs side by side and self-checks the result against expected `A * B`
+* Elaborated each design in Vivado to confirm it actually synthesizes to the
+  expected structure (AND-array, Booth encoders + shifters, multiplier
+  primitive)
+* Ran a full implementation (synthesis + place & route) on an Artix-7 target
+  and pulled real LUT/delay/power numbers for all three — not estimates
+
+---
+
+## Results (measured, Xilinx Vivado, Artix-7)
+
+| Multiplier | LUTs | Delay (ns) | Power (W) |
+|------------|------|------------|-----------|
+| Array      | 16   | 7.092      | 0.092     |
+| Wallace    | 16   | 7.092      | 0.092     |
+| Booth      | 23   | 7.753      | 0.147     |
+
+**What this actually showed me:**
+
+* At 4-bit width, **Array and Wallace tied** for fastest delay and smallest
+  area — Vivado's synthesis optimizes the Wallace reduction tree down to
+  something on par with Array at this small scale, so Wallace's textbook
+  speed advantage doesn't show up yet.
+* **Booth was the most expensive** of the three here — 44% more LUTs and 60%
+  more power than the other two — because its encoder/control logic overhead
+  outweighs the partial-product savings at only 4 bits. Booth's real payoff
+  shows up at larger bit-widths, which is listed below as a natural next step.
+* This was a useful lesson in not trusting theory blindly: the textbook
+  ranking (Wallace > Booth > Array) doesn't automatically hold at small
+  operand sizes — you have to actually synthesize and measure to know.
 
 ---
 
@@ -63,77 +73,43 @@ verifies them through simulation, and synthesizes them on real FPGA hardware
 
 ---
 
-## Design Details
+## Skills Demonstrated
 
-### Array Multiplier
+**Hardware Description Languages**
+* **Verilog HDL** — used throughout this project: structural and behavioral
+  modeling, modular design (submodules + top-level instantiation), signed
+  vs. unsigned arithmetic, parameterizable testbenches
+* **VHDL** — studied and applied in coursework/other labs; comfortable
+  working in either HDL depending on the toolchain or team standard
 
-The Array Multiplier generates partial products using AND gates and
-accumulates them through ripple-carry addition stages.
+**FPGA / VLSI Toolflow**
+* **Xilinx Vivado** — project setup, RTL elaboration, schematic viewing,
+  behavioral simulation, synthesis, and implementation (place & route) on an
+  Artix-7 device
+* Reading and interpreting **synthesis/utilization reports** (LUTs, timing,
+  power) to make real design trade-off decisions instead of relying on theory
+* **FPGA architecture basics** — LUT-based logic mapping, how RTL constructs
+  (AND arrays, shifters, adders) actually map to FPGA fabric
 
-**Advantages**
-* Simple, regular architecture
-* Easy to design and verify
-* Low hardware overhead
+**Digital Design**
+* RTL design of arithmetic circuits: ripple-carry addition, Booth recoding,
+  partial-product generation/reduction
+* Functional verification — writing self-checking testbenches, debugging
+  against expected results, waveform analysis
+* Computer arithmetic — two's complement, signed/unsigned multiplication,
+  Radix-4 Booth algorithm
 
-**Limitations**
-* Propagation delay grows with operand size
-* Poor scalability for higher bit widths
-
-### Radix-4 Booth Multiplier
-
-The Booth Multiplier reduces the number of partial products by encoding
-multiplier bits in overlapping groups of 3 (`booth_encoder_unsigned.v`
-implements the encoding table; `booth_multiplier_4x4.v` assembles 3 groups
-for a 4-bit operand).
-
-**Advantages**
-* Fewer partial products than Array
-* Naturally handles signed multiplication
-* Reduces switching activity for larger operands
-
-**Limitations**
-* Extra encoding logic adds area overhead
-* For small bit-widths, this overhead can outweigh the benefit (see Results)
-
-### Wallace Tree Multiplier
-
-The Wallace Tree Multiplier uses parallel reduction of partial products
-through carry-save addition / 3:2 compressors, giving it logarithmic-depth
-reduction instead of linear.
-
-**Advantages**
-* Highly parallel, scalable reduction structure
-* Best suited for high-performance DSP and AI-accelerator hardware at larger
-  bit-widths
-
-**Limitations**
-* More complex routing/wiring during implementation
-* At small (4-bit) widths, synthesis tools can optimize it down to performance
-  similar to Array (see Results)
+**Engineering Practice**
+* Comparative, metrics-driven evaluation (delay/area/power trade-off
+  analysis) rather than picking a "best" design by assumption
+* Technical documentation and presenting results clearly (this README, plus
+  an end-term viva presentation)
 
 ---
 
-## Design Flow
+## How to Simulate It Yourself
 
-1. Study Architecture (Array, Booth, Wallace Tree)
-2. Write Verilog Code
-3. Develop Testbench
-4. Functional Simulation (check correctness)
-5. Synthesize Designs (FPGA / Vivado)
-6. Extract Performance (Delay, Area, Power)
-7. Documentation
-
-![Design Flow](screenshots/design_flow.png)
-
----
-
-## Simulation
-
-All modules are synthesizable Verilog designs, verified with a common
-testbench using [Icarus Verilog](http://iverilog.icarus.com/) and re-verified
-in Xilinx Vivado's behavioral simulator.
-
-### Run Simulation
+Verified with [Icarus Verilog](http://iverilog.icarus.com/):
 
 ```bash
 iverilog -o sim.out rtl/array_multiplier_4x4.v \
@@ -145,31 +121,36 @@ iverilog -o sim.out rtl/array_multiplier_4x4.v \
 vvp sim.out
 ```
 
-### Sample Output
-
 ```text
 === Testbench started ===
 A=0 B=15 ARRAY=0 BOOTH=0 WALLACE=0
 A=1 B=14 ARRAY=14 BOOTH=14 WALLACE=14
 ...
-A=8 B=7 ARRAY=56 BOOTH=56 WALLACE=56
-...
 *** ALL TESTS PASSED — NO ERRORS ***
 ```
 
-The testbench sweeps all 16 combinations of `A = 0..15` against `B = 15-A`,
-prints results from all three multipliers side by side, and checks the Booth
-multiplier's output against the expected `A * B` value. All three
-architectures produced identical, correct results across the full sweep —
-confirmed both in Icarus Verilog and in Vivado's simulator (see
-`screenshots/simulation_log.png` and `screenshots/waveform.png`).
+The testbench sweeps all 16 combinations of `A = 0..15` against `B = 15-A`
+and checks Booth's output against the expected `A * B`. All three
+architectures matched on every vector — confirmed in both Icarus Verilog and
+Vivado's simulator.
 
 ---
 
-## RTL Schematics
+## Design Flow
 
-Generated by Xilinx Vivado after elaboration, confirming each design
-synthesizes to the expected structure.
+![Design Flow](screenshots/design_flow.png)
+
+1. Study architecture (Array, Booth, Wallace Tree)
+2. Write Verilog code
+3. Develop testbench
+4. Functional simulation
+5. Synthesize on FPGA (Vivado)
+6. Extract performance metrics (delay, area, power)
+7. Document and compare
+
+---
+
+## RTL Schematics (Vivado, post-elaboration)
 
 ### Array Multiplier
 ![Array Multiplier Schematic](screenshots/array_multiplier_schematic.png)
@@ -182,115 +163,31 @@ synthesizes to the expected structure.
 
 ---
 
-## Testbench & Simulation Results
+## Simulation Evidence
 
 ![Simulation Log](screenshots/simulation_log.png)
 ![Waveform](screenshots/waveform.png)
 
 ---
 
-## Synthesis Results
+## Next Steps
 
-Synthesized using Xilinx Vivado, targeting an **Artix-7 FPGA**
-(`xc7a35tcsg324-1`). These are measured results from the actual Vivado
-implementation run — not estimates.
-
-| Multiplier | LUTs | Delay (ns) | Power (W) |
-|------------|------|------------|-----------|
-| Array      | 16   | 7.092      | 0.092     |
-| Wallace    | 16   | 7.092      | 0.092     |
-| Booth      | 23   | 7.753      | 0.147     |
-
-### Key Observations
-
-* **Area (LUTs):** Booth is noticeably "heavier" than Array and Wallace at
-  this bit-width, due to the extra Booth-encoding logic — its overhead isn't
-  paid off by partial-product reduction at only 4 bits.
-* **Timing (Delay):** Array and Wallace deliver **identical, fastest**
-  combinational delay for 4-bit operands. At this small scale, Vivado's
-  synthesis optimizes the Wallace reduction tree down to a structure on par
-  with Array, so Wallace's theoretical advantage doesn't show up yet.
-* **Power:** Booth consumes **~60% more power** than Array/Wallace in this
-  configuration, driven by its extra encoding/control logic and switching
-  activity.
-* **Bottom line for 4×4:** Array offers the best area/power for its
-  simplicity, Wallace matches Array on speed and area at this scale (its
-  real advantage shows up at larger bit-widths), and Booth — despite being
-  theoretically efficient for signed arithmetic — is the costliest of the
-  three here purely because of encoder overhead at such a small operand size.
-
----
-
-## Applications
-
-* Digital Signal Processing (DSP)
-* AI Accelerators
-* FPGA-Based Systems
-* Embedded Systems
-* Communication Hardware
-* Arithmetic Logic Units (ALUs)
-* High-Speed Computing Systems
-
----
-
-## National Relevance
-
-This project's architectures and findings are directly applicable to India's
-growing semiconductor and VLSI ecosystem:
-
-* **ISRO** — satellite communication & navigation processors
-* **DRDO** — radar signal processing, missile guidance hardware
-* **C-DAC** — supercomputing & DSP accelerators
-* **RISC-V India** (Shakti, Ajna, Vajra CPUs) — need optimized multipliers
-* 5G/6G communication chips developed in India
-* Automotive electronics & EV motor control units
-
----
-
-## Skills Demonstrated
-
-* Verilog HDL
-* FPGA Design
-* RTL Design
-* Digital Logic Design
-* Computer Architecture
-* Xilinx Vivado
-* Functional Verification
-* Testbench Development
-* Hardware Optimization
-* VLSI Fundamentals
-
----
-
-## Conclusion
-
-* **Array:** lowest area, good for compact, low-power designs
-* **Wallace:** matches Array's speed and area at 4-bit scale; its parallel
-  reduction advantage is expected to grow at larger bit-widths
-* **Booth:** highest area and power at this scale, due to encoding logic
-  overhead outweighing its partial-product savings for small operands
-* **Best for FPGA low-area design:** Array
-* **Best for scalable speed optimization:** Wallace Tree
-
-## Future Scope
-
-* Extend to 8×8 and 16×16 multipliers (where Wallace Tree and Booth's
-  theoretical advantages are expected to become measurable)
+* Scale to 8×8 and 16×16 to see whether Booth and Wallace's theoretical
+  advantages actually appear at larger bit-widths
 * Add pipelining for higher throughput
-* Implement on an ASIC flow (Cadence / Synopsys)
-* Use as the multiplier unit in a RISC-V ALU subsystem
-* Apply to ML accelerator multiplication units
+* Try an ASIC flow (Cadence/Synopsys) instead of FPGA-only
+* Drop this multiplier into a small RISC-V ALU as a real use case
 
 ---
 
 ## Author
 
 **Harshit Panwar**
-
+B.Tech Electronics & Communication Engineering, JIIT Noida
 GitHub: [HarshitPanwar27](https://github.com/HarshitPanwar27)
+
+---
 
 ## License
 
-No license has been applied yet — all rights reserved by default. If you'd
-like to permit reuse later (e.g. MIT License), add a `LICENSE` file to the
-repo root.
+No license applied yet — all rights reserved by default.
